@@ -1715,6 +1715,7 @@ dependencies = [
 name = "merlino"
 version = "0.1.0"
 dependencies = [
+ "cc",
  "objc",
  "serde",
  "serde_json",
