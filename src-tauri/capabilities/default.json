@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permessi di default per Merlino",
-  "windows": ["main"],
+  "windows": ["main", "add_webapp", "webapp_*"],
   "permissions": [
     "core:default"
   ]
