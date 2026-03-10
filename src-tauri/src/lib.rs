@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tauri::{
     image::Image,
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::TrayIconBuilder,
     AppHandle, Manager, Wry,
 };
@@ -65,11 +65,24 @@ fn build_tray_menu(app: &AppHandle, webapps: &WebApps) -> Result<Menu<Wry>, taur
         menu.append(&item)?;
     }
 
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    menu.append(&MenuItem::with_id(app, "add_webapp", "Aggiungi web app…", true, None::<&str>)?)?;
+
     if !guard.is_empty() {
-        menu.append(&PredefinedMenuItem::separator(app)?)?;
+        let remove_sub = Submenu::new(app, "Rimuovi", true)?;
+        for wa in guard.iter() {
+            let item = MenuItem::with_id(
+                app,
+                format!("remove_{}", wa.id),
+                &wa.name,
+                true,
+                None::<&str>,
+            )?;
+            remove_sub.append(&item)?;
+        }
+        menu.append(&remove_sub)?;
     }
 
-    menu.append(&MenuItem::with_id(app, "add_webapp", "Aggiungi web app…", true, None::<&str>)?)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&MenuItem::with_id(app, "quit", "Esci", true, None::<&str>)?)?;
 
@@ -217,9 +230,20 @@ pub fn run() {
                     let id = event.id.as_ref();
 
                     if id == "quit" {
-                        app.exit(0);
+                        std::process::exit(0);
                     } else if id == "add_webapp" {
                         open_add_window(app);
+                    } else if let Some(webapp_id) = id.strip_prefix("remove_") {
+                        let webapps = app.state::<WebApps>().inner().clone();
+                        {
+                            let mut guard = webapps.lock().unwrap();
+                            guard.retain(|w| w.id != webapp_id);
+                            save_webapps(app, &guard);
+                        }
+                        if let Some(win) = app.get_webview_window(&format!("webapp_{}", webapp_id)) {
+                            let _ = win.close();
+                        }
+                        refresh_tray_menu(app);
                     } else if let Some(webapp_id) = id.strip_prefix("webapp_") {
                         let webapps = app.state::<WebApps>().inner().clone();
                         let guard = webapps.lock().unwrap();
@@ -244,6 +268,11 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("errore durante l'avvio di Merlino");
+        .build(tauri::generate_context!())
+        .expect("errore durante l'avvio di Merlino")
+        .run(|_app, event| {
+            if let tauri::RunEvent::ExitRequested { api, .. } = event {
+                api.prevent_exit();
+            }
+        });
 }
