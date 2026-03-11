@@ -45,9 +45,11 @@ DMG_PATH="${TMP_DIR}/${APP_NAME}.dmg"
 echo "  Download in corso..."
 curl -fsSL --progress-bar "$DMG_URL" -o "$DMG_PATH"
 
-# Monta il .dmg
+# Monta il .dmg su un path fisso
 echo "  Installazione..."
-MOUNT_POINT=$(hdiutil attach "$DMG_PATH" -nobrowse -quiet | tail -1 | awk -F'\t' '{print $NF}')
+MOUNT_POINT="${TMP_DIR}/mnt"
+mkdir -p "$MOUNT_POINT"
+hdiutil attach "$DMG_PATH" -nobrowse -quiet -mountpoint "$MOUNT_POINT"
 
 # Copia l'app in /Applications (sovrascrive versione precedente)
 if [[ -d "${INSTALL_DIR}/${APP_NAME}.app" ]]; then
