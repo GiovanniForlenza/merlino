@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f2f2f7;
+      padding: 24px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    input {
+      display: block;
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #d1d1d6;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      margin-bottom: 16px;
+      outline: none;
+    }
+    input:focus { border-color: #007AFF; box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #007AFF;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button:hover { background: #0066DD; }
+    button:active { background: #0055BB; }
+    #error { color: #FF3B30; font-size: 12px; margin-top: 8px; display: none; }
+  </style>
+</head>
+<body>
+  <label>Nome</label>
+  <input id="name" type="text" placeholder="es. Notion" autofocus>
+
+  <label>URL</label>
+  <input id="url" type="url" placeholder="https://notion.so">
+
+  <button onclick="add()">Aggiungi</button>
+  <div id="error"></div>
+
+  <script>
+    async function add() {
+      const name = document.getElementById('name').value.trim();
+      const url  = document.getElementById('url').value.trim();
+      const err  = document.getElementById('error');
+
+      if (!name || !url) {
+        err.textContent = 'Compila tutti i campi.';
+        err.style.display = 'block';
+        return;
+      }
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        err.textContent = "L'URL deve iniziare con https://";
+        err.style.display = 'block';
+        return;
+      }
+
+      err.style.display = 'none';
+      await window.__TAURI__.core.invoke('add_webapp', { name, url });
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') add();
+    });
+  </script>
+</body>
+</html>
