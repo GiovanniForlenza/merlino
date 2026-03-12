@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 use serde::{Deserialize, Serialize};
 use tauri::{
-    image::Image,
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::TrayIconBuilder,
     AppHandle, Manager, Wry,
@@ -43,8 +42,6 @@ fn save_webapps(app: &AppHandle, webapps: &[WebApp]) {
         let _ = std::fs::write(path, json);
     }
 }
-
-// ── Menu ──────────────────────────────────────────────────────────────────────
 
 fn is_window_open(app: &AppHandle, id: &str) -> bool {
     app.get_webview_window(&format!("webapp_{}", id)).is_some()
@@ -101,10 +98,8 @@ fn refresh_tray_menu(app: &AppHandle) {
     }
 }
 
-// ── Finestre web app ──────────────────────────────────────────────────────────
-
 fn open_webapp_window(app: &AppHandle, wa: &WebApp) {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
+    use tauri::WebviewUrl;
 
     let label = format!("webapp_{}", wa.id);
 
@@ -135,14 +130,14 @@ fn open_webapp_window(app: &AppHandle, wa: &WebApp) {
 }
 
 fn open_add_window(app: &AppHandle) {
-    use tauri::{WebviewUrl, WebviewWindowBuilder};
+    use tauri::WebviewUrl;
 
     if let Some(win) = app.get_webview_window("add_webapp") {
         let _ = win.set_focus();
         return;
     }
 
-    let _ = WebviewWindowBuilder::new(app, "add_webapp", WebviewUrl::App("add.html".into()))
+    let _ = tauri::WebviewWindowBuilder::new(app, "add_webapp", WebviewUrl::App("add.html".into()))
         .title("Aggiungi web app")
         .always_on_top(true)
         .decorations(true)
@@ -150,8 +145,6 @@ fn open_add_window(app: &AppHandle) {
         .inner_size(420.0, 220.0)
         .build();
 }
-
-// ── Comandi Tauri ─────────────────────────────────────────────────────────────
 
 fn slugify(s: &str) -> String {
     s.chars()
@@ -197,8 +190,6 @@ fn remove_webapp(app: AppHandle, id: String) {
     refresh_tray_menu(&app);
 }
 
-// ── Setup app ─────────────────────────────────────────────────────────────────
-
 pub fn run() {
     let webapps: WebApps = Arc::new(Mutex::new(vec![]));
     let tray_id_state: TrayIdState = Arc::new(Mutex::new(None));
@@ -211,12 +202,13 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            // Carica web apps salvate
             let loaded = load_webapps(app.handle());
             eprintln!("[merlino] Caricate {} web app", loaded.len());
             *app.state::<WebApps>().lock().unwrap() = loaded;
 
-            let icon = Image::new(include_bytes!("../icons/tray.rgba"), 32, 32);
+            let icon_bytes = include_bytes!("../icons/tray.png");
+            let icon = tauri::image::Image::from_bytes(icon_bytes)
+                .expect("Impossibile caricare l'icona del tray");
 
             let webapps = app.state::<WebApps>().inner().clone();
             let initial_menu = build_tray_menu(app.handle(), &webapps)?;
